@@ -61,15 +61,16 @@ def main():
 
         # Load corresponding model dynamically
         model_mapping = {
-            "Fraud Detection": "fraud_detection.pkl",
-            "Credit Scoring": "credit_scoring.pkl",
-            "Medical Diagnosis": "medical_diagnosis.pkl",
-            "Patient Risk Assessment": "patient_risk.pkl",
-            "Candidate Screening": "candidate_screening.pkl",
-            "Employee Performance Predictions": "employee_performance.pkl",
-            "Customer Segmentation": "customer_segmentation.pkl",
-            "Recommendation Systems": "recommendation_system.pkl"
-        }
+    "Fraud Detection": "models/fraud_detection.pkl",
+    "Credit Scoring": "models/credit_scoring.pkl",
+    "Medical Diagnosis": "models/medical_diagnosis.pkl",
+    "Patient Risk Assessment": "models/patient_risk.pkl",
+    "Candidate Screening": "models/candidate_screening.pkl",
+    "Employee Performance Predictions": "models/employee_performance.pkl",
+    "Customer Segmentation": "models/customer_segmentation.pkl",
+    "Recommendation Systems": "models/recommendation_system.pkl"
+}
+
         model_path = model_mapping.get(sub_category)
 
         if model_path:
