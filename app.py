@@ -14,10 +14,10 @@ import shap
 import matplotlib.pyplot as plt
 import numpy as np
 
+import joblib
+
 def load_model(model_path):
-    with open(model_path, "rb") as file:
-        model = pickle.load(file)
-    return model
+    return joblib.load(model_path)
 
 def preprocess_data(df, target_column):
     # Ensure target column exists
