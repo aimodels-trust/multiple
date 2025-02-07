@@ -1,5 +1,5 @@
 streamlit
-shap
+shap==0.42.1
 pandas
 numpy
 scikit-learn
