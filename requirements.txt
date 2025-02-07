@@ -1,6 +1,6 @@
 streamlit
 pandas
 pickle5
+numpy==1.26.4  # Last version before NumPy 2.0
 shap>=0.44.0
 matplotlib
-numpy==1.26.4
