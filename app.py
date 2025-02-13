@@ -13,7 +13,6 @@ import pickle
 import shap
 import matplotlib.pyplot as plt
 import numpy as np
-
 import joblib
 
 def load_model(model_path):
@@ -29,9 +28,22 @@ def preprocess_data(df, target_column):
     return X, df[target_column] if target_column in df.columns else None
 
 def explain_predictions(model, X):
-    explainer = shap.Explainer(model, X)
-    shap_values = explainer(X)
-    return shap_values
+    try:
+        model_type = str(type(model)).lower()
+        
+        if "xgboost" in model_type or "randomforest" in model_type:
+            explainer = shap.TreeExplainer(model)
+        elif "linear" in model_type:
+            explainer = shap.LinearExplainer(model, X)
+        else:
+            explainer = shap.Explainer(model, X)
+        
+        shap_values = explainer(X[:100])  # Limit to 100 samples for efficiency
+        return shap_values
+    
+    except Exception as e:
+        st.error(f"SHAP explainability error: {e}")
+        return None
 
 def main():
     st.title("Trust & Transparency in Business Systems using Explainable AI")
@@ -61,15 +73,15 @@ def main():
 
         # Load corresponding model dynamically
         model_mapping = {
-    "Fraud Detection": "models/fraud_detection.pkl",
-    "Credit Scoring": "models/credit_scoring.joblib",
-    "Medical Diagnosis": "models/medical_diagnosis.pkl",
-    "Patient Risk Assessment": "models/patient_risk.pkl",
-    "Candidate Screening": "models/candidate_screening.pkl",
-    "Employee Performance Predictions": "models/employee_performance.pkl",
-    "Customer Segmentation": "models/customer_segmentation.pkl",
-    "Recommendation Systems": "models/recommendation_system.pkl"
-}
+            "Fraud Detection": "models/fraud_detection.pkl",
+            "Credit Scoring": "models/credit_scoring.joblib",
+            "Medical Diagnosis": "models/medical_diagnosis.pkl",
+            "Patient Risk Assessment": "models/patient_risk.pkl",
+            "Candidate Screening": "models/candidate_screening.pkl",
+            "Employee Performance Predictions": "models/employee_performance.pkl",
+            "Customer Segmentation": "models/customer_segmentation.pkl",
+            "Recommendation Systems": "models/recommendation_system.pkl"
+        }
 
         model_path = model_mapping.get(sub_category)
 
@@ -88,10 +100,13 @@ def main():
                 # Explain with SHAP
                 st.write("### Explainability (SHAP Values):")
                 shap_values = explain_predictions(model, X)
-
-                fig, ax = plt.subplots()
-                shap.summary_plot(shap_values, X, show=False)
-                st.pyplot(fig)
+                
+                if shap_values is not None:
+                    fig, ax = plt.subplots()
+                    shap.summary_plot(shap_values, X[:100], show=False)
+                    st.pyplot(fig)
+                else:
+                    st.warning("SHAP explainability failed.")
         else:
             st.warning("Model for the selected application is not available yet.")
 
