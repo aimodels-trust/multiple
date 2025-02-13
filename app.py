@@ -66,7 +66,7 @@ def main():
 
         # Load corresponding model dynamically
         model_mapping = {
-            "Fraud Detection": "models/fraud_detection.pkl",
+            "Fraud Detection": "models/fraud_detection.joblib",
             "Credit Scoring": "models/credit_scoring.joblib",
             "Medical Diagnosis": "models/medical_diagnosis.pkl",
             "Patient Risk Assessment": "models/patient_risk.pkl",
