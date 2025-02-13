@@ -1,119 +1,66 @@
-# -*- coding: utf-8 -*-
-"""app.py"""
-
-import streamlit as st
 import pandas as pd
-import pickle
-import shap
-import matplotlib.pyplot as plt
 import numpy as np
 import joblib
+import shap
+import matplotlib.pyplot as plt
+import IPython
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
 
-def load_model(model_path):
-    return joblib.load(model_path)
+# ✅ Ensure IPython is installed for SHAP visualization
+IPython.get_ipython()
 
-def preprocess_data(df, target_column):
-    if target_column not in df.columns:
-        st.error(f"Target column '{target_column}' not found in uploaded data.")
-        return None, None
+# 📂 Load dataset
+data_path = '/content/drive/MyDrive/dataset/finance/fraud detection/train_transaction.csv'
+df = pd.read_csv(data_path)
 
-    X = df.drop(columns=[target_column], errors='ignore')
-    return X, df[target_column] if target_column in df.columns else None
+# Debugging: Check dataset structure
+print("Dataset Info:")
+print(df.info())
 
-def explain_predictions(model, X):
-    try:
-        model_type = str(type(model)).lower()
+# 🎯 Define target and features
+target_col = 'isFraud'
+X = df.drop(columns=[target_col])
+y = df[target_col]
 
-        if "xgboost" in model_type or "randomforest" in model_type:
-            explainer = shap.TreeExplainer(model)
-        elif "linear" in model_type:
-            explainer = shap.LinearExplainer(model, X)
-        else:
-            explainer = shap.Explainer(model, X)
+# 🔄 Convert categorical columns to numerical (One-Hot Encoding)
+X = pd.get_dummies(X, drop_first=True)
 
-        shap_values = explainer(X[:100])  # Limit to 100 samples for efficiency
-        return shap_values
+# 🏋️‍♂️ Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    except Exception as e:
-        st.error(f"SHAP explainability error: {e}")
-        return None
+# ✅ Ensure training & test sets have the same features
+X_train, X_test = X_train.align(X_test, join='left', axis=1, fill_value=0)
 
-def main():
-    st.title("Trust & Transparency in Business Systems using Explainable AI")
+# 🌲 Train model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
 
-    # Select domain
-    domain = st.selectbox("Select Domain", ["Finance", "Healthcare", "HR & Recruitment", "Marketing"])
+# 🎯 Evaluate model
+y_pred = model.predict(X_test)
+print("\n🔹 Accuracy:", accuracy_score(y_test, y_pred))
+print("\n🔹 Classification Report:\n", classification_report(y_test, y_pred))
 
-    # Select sub-category based on domain
-    sub_categories = {
-        "Finance": ["Credit Scoring", "Fraud Detection"],
-        "Healthcare": ["Medical Diagnosis", "Patient Risk Assessment"],
-        "HR & Recruitment": ["Candidate Screening", "Employee Performance Predictions"],
-        "Marketing": ["Customer Segmentation", "Recommendation Systems"]
-    }
-    sub_category = st.selectbox("Select Application", sub_categories.get(domain, ["Coming Soon"]))
+# 💾 Save model using joblib
+model_path = '/content/drive/MyDrive/fraud_detection_model.joblib'
+joblib.dump(model, model_path)
+print(f"\n✅ Model saved at: {model_path}")
 
-    # Upload dataset
-    uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
+# 🔍 Explainability using SHAP
+explainer = shap.Explainer(model, X_train)  # Use training data
+shap_values = explainer(X_test)
 
-    if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
-        st.write("### Uploaded Data Preview:")
-        st.write(df.head())
+# ✅ Ensure test features match training features
+X_test = X_test[X_train.columns]
 
-        # User selects classification column
-        target_column = st.selectbox("Select Classification Column", df.columns)
+# 💾 Save SHAP values & test samples
+shap_values_path = '/content/drive/MyDrive/shap_values.npy'
+np.save(shap_values_path, shap_values.values)
+X_test.to_csv('/content/drive/MyDrive/shap_test_samples.csv', index=False)
+print(f"\n✅ SHAP values saved at: {shap_values_path}")
 
-        # Load corresponding model dynamically
-        model_mapping = {
-            "Fraud Detection": "models/fraud_detection.joblib",
-            "Credit Scoring": "models/credit_scoring.joblib",
-            "Medical Diagnosis": "models/medical_diagnosis.pkl",
-            "Patient Risk Assessment": "models/patient_risk.pkl",
-            "Candidate Screening": "models/candidate_screening.pkl",
-            "Employee Performance Predictions": "models/employee_performance.pkl",
-            "Customer Segmentation": "models/customer_segmentation.pkl",
-            "Recommendation Systems": "models/recommendation_system.pkl"
-        }
-
-        model_path = model_mapping.get(sub_category)
-
-        if model_path:
-            model = load_model(model_path)
-
-            # Preprocess data
-            X, y = preprocess_data(df, target_column)
-            if X is not None:
-                # Make predictions
-                predictions = model.predict(X)
-                df["Predictions"] = predictions
-                st.write("### Prediction Results:")
-                st.write(df[[target_column, "Predictions"]])
-
-                # Explain with SHAP
-                st.write("### Explainability (SHAP Values):")
-                shap_values = explain_predictions(model, X)
-
-                if shap_values is not None:
-                    try:
-                        # SHAP Force Plot
-                        shap.initjs()
-                        fig, ax = plt.subplots()
-                        shap.force_plot(
-                            shap_values.base_values[0], 
-                            shap_values.values[0, :], 
-                            X.iloc[0, :], 
-                            matplotlib=True
-                        )
-                        st.pyplot(fig)
-
-                    except Exception as e:
-                        st.error(f"SHAP force plot error: {e}")
-
-                else:
-                    st.warning("SHAP explainability failed.")
-        else:
-            st.warning("Model for the selected application is not available yet.")
-
-if __name__ == "__main__":
-    main()
+# 📊 Plot SHAP summary
+plt.figure(figsize=(10, 6))
+shap.summary_plot(np.array(shap_values.values), X_test)
+plt.show()
