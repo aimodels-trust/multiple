@@ -102,9 +102,13 @@ def main():
                 shap_values = explain_predictions(model, X)
                 
                 if shap_values is not None:
+                try:
                     fig, ax = plt.subplots()
-                    shap.summary_plot(shap_values, X[:100], show=False)
+                    shap.force_plot(shap_values.base_values[0], shap_values.values[0, :], X.iloc[0, :], matplotlib=True)
                     st.pyplot(fig)
+                except Exception as e:
+                    st.error(f\"SHAP force plot error: {e}\")
+
                 else:
                     st.warning("SHAP explainability failed.")
         else:
